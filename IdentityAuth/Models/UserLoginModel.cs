@@ -3,7 +3,7 @@
 using Microsoft.AspNetCore.Authentication;
 using System.ComponentModel.DataAnnotations;
 
-namespace SocialAuth.Models
+namespace IdentityAuth.Models
 {
     public class UserLoginModel
     {

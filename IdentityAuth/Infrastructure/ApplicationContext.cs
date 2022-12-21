@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using SocialAuth.Models;
+using IdentityAuth.Models;
 
-namespace SocialAuth.Infrastructure
+namespace IdentityAuth.Infrastructure
 {
     public class ApplicationContext : IdentityDbContext<User>
     {

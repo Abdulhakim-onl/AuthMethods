@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32519.379
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityAuth", "SocialAuth\IdentityAuth.csproj", "{26503ACC-982A-4DCF-B7F6-9C35117903BA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IdentityAuth", "IdentityAuth\IdentityAuth.csproj", "{26503ACC-982A-4DCF-B7F6-9C35117903BA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JWTPermissionBased", "..\..\..\Downloads\jwtpermissionbased-main-JWTPermissionBased\jwtpermissionbased-main-JWTPermissionBased\JWTPermissionBased\JWTPermissionBased.csproj", "{B83401A9-11C7-467F-B7AE-64568DCD0DB3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JWTPermissionBased", "JWTPermissionBased\JWTPermissionBased.csproj", "{B83401A9-11C7-467F-B7AE-64568DCD0DB3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

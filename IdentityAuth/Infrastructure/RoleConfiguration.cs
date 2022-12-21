@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace SocialAuth.Infrastructure
+namespace IdentityAuth.Infrastructure
 {
     public class RoleConfiguration : IEntityTypeConfiguration<IdentityRole>
     {

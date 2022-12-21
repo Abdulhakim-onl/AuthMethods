@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using SocialAuth.Infrastructure;
-using SocialAuth.Models;
+using IdentityAuth.Infrastructure;
+using IdentityAuth.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);

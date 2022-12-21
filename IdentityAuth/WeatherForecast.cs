@@ -1,4 +1,4 @@
-namespace SocialAuth
+namespace IdentityAuth
 {
     public class WeatherForecast
     {

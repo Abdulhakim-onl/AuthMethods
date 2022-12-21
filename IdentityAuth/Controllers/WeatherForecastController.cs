@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace SocialAuth.Controllers
+namespace IdentityAuth.Controllers
 {
     [ApiController]
     [Route("[controller]")]
