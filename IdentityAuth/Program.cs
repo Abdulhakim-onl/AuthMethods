@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using IdentityAuth.Infrastructure;
 using IdentityAuth.Models;
 using System.Text;
+using IdentityAuth.Interfaces;
+using IdentityAuth.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,13 +74,6 @@ builder.Services.AddIdentity<User, IdentityRole>(config =>
                     .AddDefaultTokenProviders()
                     .AddEntityFrameworkStores<ApplicationContext>();
 
-//.AddGoogle(options =>
-//{
-//    IConfigurationSection googleAuthNSection =
-//    builder.Configuration.GetSection("Authentication:Google");
-//    options.ClientId = googleAuthNSection["ClientId"];
-//    options.ClientSecret = googleAuthNSection["ClientSecret"];
-//})
 //.AddFacebook(options =>
 //{
 //    IConfigurationSection FBAuthNSection =
@@ -104,10 +98,12 @@ builder.Services.AddIdentity<User, IdentityRole>(config =>
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 builder.Services.AddAuthentication(options =>
 {
+    //options.DefaultAuthenticateScheme = GoogleDefaults.AuthenticationScheme;
+    //options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
+})
+    .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters()
     {
@@ -120,10 +116,30 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings.GetSection("validAudience").Value,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.GetSection("securityKey").Value))
     };
+})
+    .AddGoogle(options =>
+{
+    IConfigurationSection googleAuthNSection =
+    builder.Configuration.GetSection("Authentication:Google");
+    options.ClientId = googleAuthNSection["ClientId"];
+    options.ClientSecret = googleAuthNSection["ClientSecret"];
+
+    //this function is get user google profile image
+    options.Scope.Add("profile");
+    options.SignInScheme = IdentityConstants.ExternalScheme;
+});
+
+//Cookie Policy needed for External Auth
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    // This lambda determines whether user consent for non-essential cookies is needed for a given request.
+    options.CheckConsentNeeded = context => true;
+    options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
 });
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
@@ -134,6 +150,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthentication();

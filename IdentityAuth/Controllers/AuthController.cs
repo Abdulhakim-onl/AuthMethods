@@ -6,6 +6,8 @@ using IdentityAuth.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Identity.ViewModels;
+using IdentityAuth.Interfaces;
 
 namespace IdentityAuth.Controllers
 {
@@ -13,14 +15,13 @@ namespace IdentityAuth.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<User> userManager;
-        private readonly IConfigurationSection _jwtSettings;
+        private readonly IAuthService _authService;
+        private readonly UserManager<User> _userManager;
 
-        public AuthController(UserManager<User> userManager, IConfiguration configuration)
+        public AuthController(UserManager<User> userManager, IAuthService authService)
         {
-            this.userManager = userManager;
-            _jwtSettings = configuration.GetSection("JwtSettings");
-
+            _userManager = userManager;
+            _authService = authService;
         }
 
         [Authorize]
@@ -34,12 +35,12 @@ namespace IdentityAuth.Controllers
         public async Task<ActionResult> Register([FromBody] UserRegistrationModel userModel)
         {
             var user = new User() { UserName = userModel.UserName, Email = userModel.Email, FirstName = userModel.FirstName, LastName = userModel.LastName };
-            var result = await userManager.CreateAsync(user, userModel.Password);
+            var result = await _userManager.CreateAsync(user, userModel.Password);
             if (!result.Succeeded)
             {
                 return Ok(result.Errors);
             }
-            await userManager.AddToRoleAsync(user, "Visitor");
+            await _userManager.AddToRoleAsync(user, "Visitor");
 
             return StatusCode(201);
         }
@@ -47,44 +48,14 @@ namespace IdentityAuth.Controllers
         [HttpPost("Login")]
         public async Task<IActionResult> Login([FromBody] UserLoginModel userModel)
         {
-            var user = await userManager.FindByEmailAsync(userModel.Email);
+            var user = await _userManager.FindByEmailAsync(userModel.Email);
 
-            if (user != null && await userManager.CheckPasswordAsync(user, userModel.Password))
+            if (user != null && await _userManager.CheckPasswordAsync(user, userModel.Password))
             {
-                var claims = GetClaims(user);
-                return Ok(GenerateTokenOptions(await claims));
+                var claims = await _authService.GetClaims(user);
+                return Ok(await _authService.GenerateTokenOptions(claims));
             }
             return Unauthorized("Invalid Authentication");
-        }
-
-        private string GenerateTokenOptions(List<Claim> claims)
-        {
-            var key = Encoding.UTF8.GetBytes(_jwtSettings.GetSection("securityKey").Value);
-            var secret = new SymmetricSecurityKey(key);
-            var credentials = new SigningCredentials(secret, SecurityAlgorithms.HmacSha256);
-
-            var tokenOptions = new JwtSecurityToken(
-                issuer: _jwtSettings.GetSection("validIssuer").Value,
-                audience: _jwtSettings.GetSection("validAudience").Value,
-                claims: claims,
-                expires: DateTime.Now.AddMinutes(Convert.ToDouble(_jwtSettings.GetSection("expiryInMinutes").Value)),
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(tokenOptions);
-        }
-
-        private async Task<List<Claim>> GetClaims(User user)
-        {
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, user.Email)
-            };
-            var roles = await userManager.GetRolesAsync(user);
-            foreach (var role in roles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
-            }
-            return claims;
         }
     }
 }

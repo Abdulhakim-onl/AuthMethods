@@ -4,7 +4,7 @@
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
 
         public DateTime Created { get; set; }
 
