@@ -1,13 +1,13 @@
-﻿using Google.Apis.Auth;
+﻿using JWTPermissionBased.Application.Common.Configs;
 using JWTPermissionBased.Application.Common.Enums.AuthEnums;
 using JWTPermissionBased.Application.Common.Interfaces;
 using JWTPermissionBased.Application.Common.Models;
 using JWTPermissionBased.Domain.AuthEntity;
 using JWTPermissionBased.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
+using Google.Apis.Auth;
 
 namespace JWTPermissionBased.Controllers;
 
@@ -17,15 +17,17 @@ public class AuthenticationController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly ApplicationContext _context;
+    private readonly GoogleExternalOptions _googleExternal;
 
-    public AuthenticationController(IAuthService authService, ApplicationContext context)
+    public AuthenticationController(IAuthService authService, ApplicationContext context, GoogleExternalOptions googleExternal)
     {
         _authService = authService;
+        _googleExternal = googleExternal;
         _context = context;
     }
     
     [AllowAnonymous]
-    [HttpPost("registration_with email")]
+    [HttpPost("registration_with_email")]
     public async Task<IActionResult> RegistrationWithEmail([FromBody] RegistrationViaEmailCommand command,
         CancellationToken cancellationToken)
     {
@@ -53,7 +55,7 @@ public class AuthenticationController : ControllerBase
     }
     
     [AllowAnonymous]
-    [HttpPost("login_with email")]
+    [HttpPost("login_with_email")]
     public async Task<IActionResult> LoginWithEmail([FromBody] LoginViaEmailCommand command,
         CancellationToken cancellationToken)
     {
@@ -66,24 +68,45 @@ public class AuthenticationController : ControllerBase
     }
 
     [AllowAnonymous]
-    [HttpPost("authenticate")]
-    public async Task<IActionResult> AuthenticateAsync([FromBody] AuthenticateRequest data, CancellationToken cancellationToken)
+    [HttpPost("login_with_google")]
+    public async Task<IActionResult> LoginWithGoogle([FromBody] ExternalAuthModel authModel, CancellationToken cancellationToken)
     {
-        GoogleJsonWebSignature.ValidationSettings settings = new GoogleJsonWebSignature.ValidationSettings();
+        var settings = new GoogleJsonWebSignature.ValidationSettings()
+        {
+            Audience = new List<string> { _googleExternal.ClientId}
+        };
 
-        // Change this to your google client ID
-        settings.Audience = new List<string>() { "576415067343-27vc72nhm2mq28iepvpsn4ell0reg0ln.apps.googleusercontent.com" };
+        var payload = await GoogleJsonWebSignature.ValidateAsync(authModel.IdToken, settings);
 
-        GoogleJsonWebSignature.Payload payload = GoogleJsonWebSignature.ValidateAsync(data.IdToken, settings).Result;
-        var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == payload.Email, cancellationToken) 
-            ?? throw new Exception("User doesn't exist");
+        var user = _context.Users.Where(x => x.ExternalId == authModel.Id && x.Provider== authModel.Provider).FirstOrDefault();
 
-        return Ok(new { AuthToken = _authService.AuthenticationToken(user) });
-    }
+        if (user == null)
+        {
+            user = new User()
+            {
+                Id = Guid.NewGuid(),
+                UserName = authModel.Name,
+                Email = authModel.Email,
+                FirstName = authModel.FirstName,
+                LastName = authModel.LastName,
+                ExternalId = authModel.Id,
+                Provider = authModel.Provider,
+                PhotoUrl = authModel.PhotoUrl,
+                RoleId = RoleEnum.Client.Key
+            };
 
-    public class AuthenticateRequest
-    {
-        [Required]
-        public string IdToken { get; set; }
+            await _context.Users.AddAsync(user, cancellationToken);
+
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        if (user != null)
+        {
+            return Ok(await _authService.AuthenticationToken(user));
+        }
+        else
+        {
+            return BadRequest();
+        }
     }
 }

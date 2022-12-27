@@ -62,6 +62,10 @@ builder.Services.AddSwaggerGen(swagger =>
 
 #endregion
 
+var authcon = builder.Configuration.GetSection("Authentication").GetSection("Google").Get<GoogleExternalOptions>();
+builder.Services.AddSingleton(authcon);
+
+
 var jwtTokenConfig = builder.Configuration.GetSection("jwtTokenConfig").Get<JwtTokenConfig>();
 builder.Services.AddSingleton(jwtTokenConfig);
 
