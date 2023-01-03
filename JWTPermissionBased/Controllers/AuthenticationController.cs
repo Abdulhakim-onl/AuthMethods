@@ -18,14 +18,16 @@ public class AuthenticationController : ControllerBase
     private readonly IAuthService _authService;
     private readonly ApplicationContext _context;
     private readonly GoogleExternalOptions _googleExternal;
+    private readonly IGoogleAuthenticatorService _googleAuthenticatorService;
 
-    public AuthenticationController(IAuthService authService, ApplicationContext context, GoogleExternalOptions googleExternal)
+    public AuthenticationController(IAuthService authService, ApplicationContext context, GoogleExternalOptions googleExternal, IGoogleAuthenticatorService googleAuthenticatorService)
     {
         _authService = authService;
         _googleExternal = googleExternal;
         _context = context;
+        _googleAuthenticatorService = googleAuthenticatorService;
     }
-    
+
     [AllowAnonymous]
     [HttpPost("registration_with_email")]
     public async Task<IActionResult> RegistrationWithEmail([FromBody] RegistrationViaEmailCommand command,
@@ -46,14 +48,14 @@ public class AuthenticationController : ControllerBase
             RoleId = RoleEnum.Client.Key,
             Password = command.Password
         };
-        
-        await _context.Users.AddAsync(user,cancellationToken);
+
+        await _context.Users.AddAsync(user, cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(await _authService.AuthenticationToken(user));
     }
-    
+
     [AllowAnonymous]
     [HttpPost("login_with_email")]
     public async Task<IActionResult> LoginWithEmail([FromBody] LoginViaEmailCommand command,
@@ -63,7 +65,7 @@ public class AuthenticationController : ControllerBase
             throw new ArgumentNullException(typeof(LoginViaEmailCommand).ToString(), "Not valid");
 
         var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == command.Email && x.Password == command.Password, cancellationToken) ?? throw new Exception("User doesn't exist");
-      
+
         return Ok(await _authService.AuthenticationToken(user));
     }
 
@@ -73,12 +75,12 @@ public class AuthenticationController : ControllerBase
     {
         var settings = new GoogleJsonWebSignature.ValidationSettings()
         {
-            Audience = new List<string> { _googleExternal.ClientId}
+            Audience = new List<string> { _googleExternal.ClientId }
         };
 
         var payload = await GoogleJsonWebSignature.ValidateAsync(authModel.IdToken, settings);
 
-        var user = _context.Users.Where(x => x.ExternalId == authModel.Id && x.Provider== authModel.Provider).FirstOrDefault();
+        var user = _context.Users.Where(x => x.ExternalId == authModel.Id && x.Provider == authModel.Provider).FirstOrDefault();
 
         if (user == null)
         {
@@ -108,5 +110,22 @@ public class AuthenticationController : ControllerBase
         {
             return BadRequest();
         }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("reg_authenticator")]
+    public IActionResult RegVerification()
+    {
+        var SetupResult = _googleAuthenticatorService.GenerateSetupCode("Test2Authenticator", "secretkey", 250, 250);
+        return Ok(SetupResult.QrCodeSetupImageUrl + ' ' + SetupResult.ManualEntryKey);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("auth_authenticator")]
+    public IActionResult ValidateAuthenticator([FromBody] string secretCode)
+    {
+        bool ValidateResult = _googleAuthenticatorService.ValidateTwoFactorPIN("secretkey", secretCode);
+
+        return Ok(ValidateResult);
     }
 }

@@ -97,6 +97,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddTransient<IGoogleAuthenticatorService, GoogleAuthenticatorService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
